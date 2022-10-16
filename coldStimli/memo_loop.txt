@@ -1,0 +1,49 @@
+int t, pin;
+  char rcv;
+
+  if ((t / 1000000) % 2 == 0) {
+    digitalWrite(LEDPIN, HIGH);   // sets the LED on
+  } else {
+    digitalWrite(LEDPIN, LOW);    // sets the LED off
+  }
+
+  if (Serial.available() > 0) {
+    if ((t / 300000) % 2 == 0) {
+      digitalWrite(LEDPIN, HIGH);   // sets the LED on
+    } else {
+      digitalWrite(LEDPIN, LOW);    // sets the LED off
+    }
+
+    rcv = Serial.read();
+
+    if (rcv == PC_ESP32_POLA) {
+      pola = Serial.read();
+    }
+
+    else if (rcv == PC_ESP32_STIM_PATTERN) {//if PC requires stimulation
+      DA_TEST = false;
+      while (Serial.available() < ELECTRODE_NUM); //wait until serial buffer is filled with data.
+      for (pin = 0; pin < ELECTRODE_NUM; pin++) {//read data
+        stim_pattern[pin] = Serial.read();
+        if (stim_pattern[pin] > 200)stim_pattern[pin] = 0; //sometimes, header is in the data
+      }
+
+      stimulate(pola);
+
+    } else if (rcv == PC_ESP32_MEASURE_REQUEST) {
+      while (Serial.available() < ELECTRODE_NUM);
+
+      for (pin = 0; pin < ELECTRODE_NUM; pin++) {
+        stim_pattern[pin] = Serial.read();
+        if (stim_pattern[pin] > 200)stim_pattern[pin] = 0;
+      }
+      measure(pola);
+
+      for (pin = 0; pin < ELECTRODE_NUM; pin++) {
+        Serial.write(impedance[pin]);
+      }
+
+      Serial.write(ESP32_PC_MEASURE_RESULT);
+
+    }
+  }
